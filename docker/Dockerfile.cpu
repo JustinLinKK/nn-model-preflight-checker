@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN groupadd --system preflight && useradd --system --gid preflight --create-home preflight
+WORKDIR /opt/model-preflight
+
+COPY pyproject.toml README.md LICENSE ./
+COPY src ./src
+RUN python -m pip install torch --index-url https://download.pytorch.org/whl/cpu \
+    && python -m pip install jsonschema PyYAML \
+    && python -m pip install --no-deps .
+
+USER preflight:preflight
+WORKDIR /tmp
+ENTRYPOINT ["model-preflight"]

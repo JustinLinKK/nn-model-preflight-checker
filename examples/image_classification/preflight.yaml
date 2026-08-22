@@ -1,0 +1,30 @@
+schema_version: 1
+candidate:
+  id: example_image_classifier
+  root: ./candidate
+  adapter: preflight_adapter:CandidateAdapter
+task:
+  name: synthetic_image_classification
+  fixture_root: ./fixtures
+  num_classes: 2
+  target_dtype: int64
+  input_rank: 3
+  output_class_dimension: -1
+scenarios:
+  train_batch_sizes: [2, 4, 8, 16, 32]
+  test_last_batch: true
+  run_validation: true
+  input_shapes:
+    normal: [3, 8, 8]
+  boundary_shapes:
+    wide: [3, 8, 12]
+  precision: [fp32]
+target:
+  profile: nvidia/a10_24gb
+execution:
+  abstract_timeout_seconds: 20
+  cpu_timeout_seconds: 30
+  maximum_cpu_memory_mb: 4096
+  disable_network: true
+policy:
+  mode: balanced

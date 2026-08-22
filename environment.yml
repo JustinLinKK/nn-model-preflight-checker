@@ -1,0 +1,14 @@
+name: model-preflight
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python>=3.10
+  - pip
+  - pytorch>=2.2
+  - cpuonly
+  - pyyaml>=6
+  - jsonschema>=4.18
+  - pytest>=8
+  - pip:
+      - -e .[dev]

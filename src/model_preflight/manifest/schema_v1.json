@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://model-preflight.dev/schemas/manifest/v1",
+  "title": "Model Preflight manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate", "task", "scenarios", "target"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "root", "adapter"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "root": {"type": "string", "minLength": 1},
+        "adapter": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_.]*$"
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "fixture_root": {"type": "string", "minLength": 1},
+        "num_classes": {"type": "integer", "minimum": 1},
+        "target_dtype": {
+          "enum": ["bool", "uint8", "int8", "int16", "int32", "int64", "float16", "float32", "float64", "bfloat16"]
+        },
+        "input_rank": {"type": "integer", "minimum": 1},
+        "output_class_dimension": {"type": "integer"},
+        "drop_last": {"type": "boolean", "default": false}
+      }
+    },
+    "scenarios": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["train_batch_sizes"],
+      "properties": {
+        "train_batch_sizes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 1}
+        },
+        "test_last_batch": {"type": "boolean", "default": true},
+        "last_batch_size": {"type": "integer", "minimum": 1, "default": 1},
+        "run_validation": {"type": "boolean", "default": true},
+        "input_shapes": {"$ref": "#/$defs/shapes"},
+        "boundary_shapes": {"$ref": "#/$defs/shapes"},
+        "precision": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["fp32", "fp16", "bf16", "tf32", "fp8", "nvfp4"]},
+          "default": ["fp32"]
+        },
+        "stateful_two_steps": {"type": "boolean", "default": false}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile"],
+      "properties": {"profile": {"type": "string", "minLength": 1}}
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "abstract_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "default": 30},
+        "cpu_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "default": 90},
+        "maximum_cpu_memory_mb": {"type": "integer", "minimum": 128, "default": 8192},
+        "maximum_processes": {"type": "integer", "minimum": 1, "default": 32},
+        "maximum_output_bytes": {"type": "integer", "minimum": 1024, "default": 1000000},
+        "disable_network": {"type": "boolean", "default": true},
+        "allow_real_cpu_abstract_fallback": {"type": "boolean", "default": false},
+        "cache": {"type": "boolean", "default": false}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["audit", "balanced", "strict"], "default": "balanced"},
+        "memory_warning_fraction": {"type": "number", "exclusiveMinimum": 0, "default": 0.7},
+        "memory_high_risk_fraction": {"type": "number", "exclusiveMinimum": 0, "default": 0.9},
+        "memory_failure_fraction": {"type": "number", "exclusiveMinimum": 0}
+      }
+    }
+  },
+  "$defs": {
+    "shape": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "integer", "minimum": 1}
+    },
+    "shapes": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/shape"},
+      "default": {}
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://model-preflight.dev/schemas/gpu-profile/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "vendor",
+    "name",
+    "architecture",
+    "compute_capability",
+    "vram_bytes",
+    "native_training_dtypes",
+    "unsupported_features"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "vendor": {"type": "string"},
+    "name": {"type": "string"},
+    "architecture": {"type": "string"},
+    "compute_capability": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "vram_bytes": {"type": "integer", "minimum": 1},
+    "native_training_dtypes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["fp32", "fp16", "bf16", "tf32", "fp8", "nvfp4"]}
+    },
+    "unsupported_features": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    },
+    "notes": {"type": "string"}
+  }
+}
+

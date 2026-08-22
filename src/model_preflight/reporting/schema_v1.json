@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://model-preflight.dev/schemas/report/v1",
+  "title": "Model Preflight report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_schema_version",
+    "candidate_id",
+    "candidate_hash",
+    "checker_version",
+    "overall_status",
+    "gpu_submission_recommended",
+    "gpu_check_required",
+    "normalized_manifest",
+    "stages",
+    "diagnostics",
+    "environment"
+  ],
+  "properties": {
+    "report_schema_version": {"const": 1},
+    "candidate_id": {"type": "string"},
+    "candidate_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "checker_version": {"type": "string"},
+    "overall_status": {"enum": ["PASS", "FAIL", "INCONCLUSIVE", "INTERNAL_ERROR"]},
+    "gpu_submission_recommended": {"type": "boolean"},
+    "gpu_check_required": {"type": "boolean"},
+    "normalized_manifest": {"type": "object"},
+    "stages": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/stage"}
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/diagnostic"}
+    },
+    "environment": {"type": "object"},
+    "resource_estimate": {"type": "object"}
+  },
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "stage", "classification", "message"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z]{3}[0-9]{3}$"},
+        "severity": {"enum": ["info", "warning", "error"]},
+        "stage": {"type": "string"},
+        "classification": {
+          "enum": [
+            "confirmed_candidate_failure",
+            "inconclusive",
+            "checker_error",
+            "risk",
+            "informational"
+          ]
+        },
+        "message": {"type": "string"},
+        "file": {"type": "string"},
+        "line": {"type": "integer", "minimum": 1},
+        "module": {"type": "string"},
+        "operation": {"type": "string"},
+        "scenario": {"type": "object"},
+        "evidence": {"type": "object"},
+        "exception_type": {"type": "string"},
+        "stack_trace": {"type": "string"},
+        "reproduction": {"type": "string"}
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "duration_seconds", "diagnostics"],
+      "properties": {
+        "name": {"type": "string"},
+        "status": {"enum": ["PASS", "FAIL", "INCONCLUSIVE", "INTERNAL_ERROR", "SKIPPED"]},
+        "duration_seconds": {"type": "number", "minimum": 0},
+        "diagnostics": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/diagnostic"}
+        },
+        "evidence": {"type": "object"}
+      }
+    }
+  }
+}

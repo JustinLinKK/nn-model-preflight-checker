@@ -1,0 +1,26 @@
+schema_version: 1
+candidate:
+  id: detached_loss_fixture
+  root: ./broken_candidate
+  adapter: preflight_adapter:CandidateAdapter
+task:
+  name: classification
+  num_classes: 2
+  target_dtype: int64
+  input_rank: 1
+  output_class_dimension: -1
+scenarios:
+  train_batch_sizes: [2]
+  test_last_batch: false
+  run_validation: false
+  input_shapes:
+    normal: [4]
+  precision: [fp32]
+target:
+  profile: nvidia/a10_24gb
+execution:
+  abstract_timeout_seconds: 20
+  cpu_timeout_seconds: 30
+  maximum_cpu_memory_mb: 4096
+policy:
+  mode: balanced
