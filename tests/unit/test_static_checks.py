@@ -56,6 +56,36 @@ class CandidateAdapter:
     assert any(item.code == "SRC_TORCH_API001" for item in result.diagnostics)
 
 
+def test_static_rejects_cuda_transfer_inside_multiprocess_dataloader_collate(
+    tmp_path: Path,
+) -> None:
+    manifest = _manifest(
+        tmp_path,
+        """
+import torch
+from torch.utils.data import DataLoader
+
+NUM_WORKERS = 4
+
+def collate(samples, device):
+    return torch.stack(samples).to(device)
+
+def make_loader(dataset, device):
+    return DataLoader(
+        dataset,
+        num_workers=NUM_WORKERS,
+        collate_fn=lambda samples: collate(samples, device),
+    )
+
+class CandidateAdapter:
+    pass
+""",
+    )
+    result = run_static_checks(manifest)
+    assert result.status.value == "FAIL"
+    assert any(item.code == "SRC_DATALOADER_CUDA001" for item in result.diagnostics)
+
+
 def test_syntax_error_is_confirmed(tmp_path: Path) -> None:
     result = run_static_checks(_manifest(tmp_path, "class CandidateAdapter(:\n"))
     assert result.status.value == "FAIL"

@@ -265,6 +265,107 @@ def _entry_module_path(manifest: Manifest) -> Path:
     return manifest.candidate.root.joinpath(*module_name.split(".")).with_suffix(".py")
 
 
+def _int_constants(tree: ast.AST) -> dict[str, int]:
+    constants: dict[str, int] = {}
+    for node in ast.walk(tree):
+        value = None
+        target = None
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, int)
+        ):
+            target, value = node.targets[0].id, node.value.value
+        elif (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, int)
+        ):
+            target, value = node.target.id, node.value.value
+        if target is not None and value is not None:
+            constants[target] = value
+    return constants
+
+
+def _moves_tensor_to_dynamic_device(node: ast.AST) -> bool:
+    for call in ast.walk(node):
+        if not isinstance(call, ast.Call) or _name(call.func).split(".")[-1] != "to":
+            continue
+        values = list(call.args) + [keyword.value for keyword in call.keywords]
+        if any(
+            isinstance(value, ast.Name) and value.id in {"device", "gpu_device"}
+            for value in values
+        ):
+            return True
+        if any(
+            isinstance(value, ast.Constant)
+            and isinstance(value.value, str)
+            and value.value.startswith("cuda")
+            for value in values
+        ):
+            return True
+    return False
+
+
+def _collate_targets(node: ast.AST) -> set[str]:
+    if isinstance(node, ast.Name):
+        return {node.id}
+    if isinstance(node, ast.Lambda):
+        return {
+            child.id
+            for child in ast.walk(node.body)
+            if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load)
+        }
+    return set()
+
+
+def _dataloader_cuda_worker_diagnostics(
+    tree: ast.AST, path: Path
+) -> list[Diagnostic]:
+    constants = _int_constants(tree)
+    cuda_collate_functions = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and _moves_tensor_to_dynamic_device(node)
+    }
+    diagnostics: list[Diagnostic] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or _name(node.func).split(".")[-1] != "DataLoader":
+            continue
+        keywords = {keyword.arg: keyword.value for keyword in node.keywords if keyword.arg}
+        workers = keywords.get("num_workers")
+        if isinstance(workers, ast.Name):
+            worker_count = constants.get(workers.id)
+        elif isinstance(workers, ast.Constant) and isinstance(workers.value, int):
+            worker_count = workers.value
+        else:
+            worker_count = None
+        collate = keywords.get("collate_fn")
+        if (
+            worker_count is not None
+            and worker_count > 0
+            and collate is not None
+            and _collate_targets(collate) & cuda_collate_functions
+        ):
+            diagnostics.append(
+                _diagnostic(
+                    "SRC_DATALOADER_CUDA001",
+                    "DataLoader workers invoke a collate function that moves tensors to CUDA; keep collation on CPU and move the batch in the parent training loop",
+                    path,
+                    node,
+                    severity=Severity.ERROR,
+                    classification=Classification.CONFIRMED,
+                    operation="DataLoader",
+                    evidence={"num_workers": worker_count},
+                )
+            )
+    return diagnostics
+
+
 def run_static_checks(manifest: Manifest) -> StageResult:
     diagnostics: list[Diagnostic] = []
     entry_path = _entry_module_path(manifest)
@@ -327,6 +428,7 @@ def run_static_checks(manifest: Manifest) -> StageResult:
         )
         visitor.visit(tree)
         diagnostics.extend(visitor.diagnostics)
+        diagnostics.extend(_dataloader_cuda_worker_diagnostics(tree, display_path))
 
     status = (
         StageStatus.FAIL
