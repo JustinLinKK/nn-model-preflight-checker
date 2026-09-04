@@ -36,8 +36,27 @@ class CandidateAdapter:
     assert {item.code for item in result.diagnostics} == {"DEV002", "BAT001"}
 
 
+def test_static_rejects_nonexistent_torch_backends_cuda_is_available(tmp_path: Path) -> None:
+    manifest = _manifest(
+        tmp_path,
+        """
+import torch
+
+def configure_tf32():
+    if torch.backends.cuda.is_available():
+        return True
+    return False
+
+class CandidateAdapter:
+    pass
+""",
+    )
+    result = run_static_checks(manifest)
+    assert result.status.value == "FAIL"
+    assert any(item.code == "SRC_TORCH_API001" for item in result.diagnostics)
+
+
 def test_syntax_error_is_confirmed(tmp_path: Path) -> None:
     result = run_static_checks(_manifest(tmp_path, "class CandidateAdapter(:\n"))
     assert result.status.value == "FAIL"
     assert result.diagnostics[0].code == "SRC001"
-

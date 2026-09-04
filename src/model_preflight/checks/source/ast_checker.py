@@ -136,6 +136,21 @@ class _Visitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         called = _name(node.func)
+        if called == "torch.backends.cuda.is_available":
+            self.diagnostics.append(
+                _diagnostic(
+                    "SRC_TORCH_API001",
+                    (
+                        "torch.backends.cuda has no is_available() API; use "
+                        "torch.cuda.is_available() instead"
+                    ),
+                    self.path,
+                    node,
+                    severity=Severity.ERROR,
+                    classification=Classification.CONFIRMED,
+                    operation=called,
+                )
+            )
         if called.endswith(".cuda"):
             self.diagnostics.append(
                 _diagnostic(
