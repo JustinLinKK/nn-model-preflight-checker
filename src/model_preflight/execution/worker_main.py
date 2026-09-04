@@ -184,7 +184,15 @@ def _find_inputs_and_target(batch: Any) -> tuple[Any | None, Any | None]:
         inputs = next(
             (
                 batch[key]
-                for key in ("inputs", "input", "x", "images", "image", "features")
+                for key in (
+                    "inputs",
+                    "input",
+                    "x",
+                    "images",
+                    "image",
+                    "features",
+                    "feats",
+                )
                 if key in batch
             ),
             None,
