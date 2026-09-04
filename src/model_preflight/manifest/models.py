@@ -35,6 +35,7 @@ class ScenarioConfig:
     run_validation: bool = True
     input_shapes: dict[str, tuple[int, ...]] = field(default_factory=dict)
     boundary_shapes: dict[str, tuple[int, ...]] = field(default_factory=dict)
+    fixture: dict[str, tuple[int, ...]] = field(default_factory=dict)
     precision: tuple[str, ...] = ("fp32",)
     stateful_two_steps: bool = False
 
@@ -53,6 +54,7 @@ class ScenarioConfig:
                             "input_shape": list(shape),
                             "precision": precision,
                             "mode": "train",
+                            "fixture": {key: list(value) for key, value in self.fixture.items()},
                         }
                     )
         return result
@@ -65,6 +67,7 @@ class ScenarioConfig:
             "input_shape": list(first_shape[1]),
             "precision": "fp32",
             "mode": "train",
+            "fixture": {key: list(value) for key, value in self.fixture.items()},
         }
         result = [normal]
         if self.test_last_batch and self.last_batch_size != normal["batch_size"]:
@@ -147,6 +150,9 @@ class Manifest:
                 },
                 "boundary_shapes": {
                     key: list(value) for key, value in self.scenarios.boundary_shapes.items()
+                },
+                "fixture": {
+                    key: list(value) for key, value in self.scenarios.fixture.items()
                 },
                 "precision": list(self.scenarios.precision),
                 "stateful_two_steps": self.scenarios.stateful_two_steps,

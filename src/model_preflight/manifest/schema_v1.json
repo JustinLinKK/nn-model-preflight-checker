@@ -52,6 +52,7 @@
         "run_validation": {"type": "boolean", "default": true},
         "input_shapes": {"$ref": "#/$defs/shapes"},
         "boundary_shapes": {"$ref": "#/$defs/shapes"},
+        "fixture": {"$ref": "#/$defs/shapes"},
         "precision": {
           "type": "array",
           "minItems": 1,

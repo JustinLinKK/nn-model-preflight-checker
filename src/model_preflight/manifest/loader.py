@@ -100,6 +100,9 @@ def load_manifest(path: str | Path) -> Manifest:
             boundary_shapes={
                 key: tuple(value) for key, value in scenario_raw.get("boundary_shapes", {}).items()
             },
+            fixture={
+                key: tuple(value) for key, value in scenario_raw.get("fixture", {}).items()
+            },
             precision=tuple(scenario_raw.get("precision", ["fp32"])),
             stateful_two_steps=bool(scenario_raw.get("stateful_two_steps", False)),
         ),
