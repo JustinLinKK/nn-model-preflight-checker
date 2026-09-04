@@ -15,3 +15,17 @@ def test_finds_feature_tensor_named_feats_in_mapping_batch() -> None:
 
     assert inputs is batch["feats"]
     assert target is batch["targets"]
+
+
+def test_finds_transformer_pixel_values_in_mapping_batch() -> None:
+    """Vision Transformer adapters conventionally name the image tensor pixel_values."""
+    batch = {
+        "pixel_values": torch.randn(3, 1152),
+        "tabular": torch.randn(3, 12),
+        "y": torch.randn(3),
+    }
+
+    inputs, target = _find_inputs_and_target(batch)
+
+    assert inputs is batch["pixel_values"]
+    assert target is batch["y"]

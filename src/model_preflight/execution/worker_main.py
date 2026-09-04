@@ -190,6 +190,7 @@ def _find_inputs_and_target(batch: Any) -> tuple[Any | None, Any | None]:
                     "x",
                     "images",
                     "image",
+                    "pixel_values",
                     "features",
                     "feats",
                 )
