@@ -26,3 +26,26 @@ target: {profile: nvidia/v100_32gb}
     assert result.status.value == "FAIL"
     assert result.diagnostics[0].code == "GPU001"
 
+
+def test_a100_80gb_profile_reports_its_real_memory_capacity(tmp_path: Path) -> None:
+    candidate = tmp_path / "candidate"
+    candidate.mkdir()
+    (candidate / "adapter.py").write_text("class CandidateAdapter: pass\n", encoding="utf-8")
+    path = tmp_path / "preflight.yaml"
+    path.write_text(
+        """
+schema_version: 1
+candidate: {id: a100-80, root: ./candidate, adapter: adapter:CandidateAdapter}
+task: {name: test}
+scenarios:
+  train_batch_sizes: [1]
+  precision: [tf32]
+target: {profile: nvidia/a100_80gb}
+""",
+        encoding="utf-8",
+    )
+
+    profile = load_profile(load_manifest(path))
+
+    assert profile["name"] == "A100-80GB"
+    assert profile["vram_bytes"] == 85899345920
